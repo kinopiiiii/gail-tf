@@ -5,6 +5,7 @@ from mpi4py import MPI
 from gailtf.baselines.common import set_global_seeds
 import os.path as osp
 import gym
+from gym import wrappers
 import logging
 from gailtf.baselines import logger
 from gailtf.baselines.ppo1.mlp_policy import MlpPolicy
@@ -23,11 +24,12 @@ def train(args):
     workerseed = args.seed + 10000 * MPI.COMM_WORLD.Get_rank()
     set_global_seeds(workerseed)
     env = gym.make(args.env_id)
+    env = wrappers.Monitor(env,'./video',force=True)
     def policy_fn(name, ob_space, ac_space):
         return MlpPolicy(name=name, ob_space=env.observation_space, ac_space=env.action_space,
             hid_size=32, num_hid_layers=2)
-    env = bench.Monitor(env, logger.get_dir() and 
-        osp.join(logger.get_dir(), "%i.monitor.json" % rank))
+    #env = bench.Monitor(env, logger.get_dir() and
+    #    osp.join(logger.get_dir(), "%i.monitor.json" % rank))
     env.seed(workerseed)
     gym.logger.setLevel(logging.WARN)
 

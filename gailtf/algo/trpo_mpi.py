@@ -62,6 +62,9 @@ def traj_segment_generator(pi, env, discriminator, horizon, stochastic):
 
         rew = discriminator.get_reward(ob, ac)
         ob, true_rew, new, _ = env.step(ac)
+
+        #env.render()
+
         rews[i] = rew
         true_rews[i] = true_rew
 

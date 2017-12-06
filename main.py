@@ -1,6 +1,7 @@
 import argparse
 from gailtf.baselines.common import set_global_seeds, tf_util as U
 import gym, logging, sys
+from gym import wrappers
 from gailtf.baselines import bench
 import os.path as osp
 from gailtf.baselines import logger
@@ -67,8 +68,9 @@ def main(args):
     def policy_fn(name, ob_space, ac_space, reuse=False):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             reuse=reuse, hid_size=64, num_hid_layers=2)
-    env = bench.Monitor(env, logger.get_dir() and
-        osp.join(logger.get_dir(), "monitor.json"))
+    env = wrappers.Monitor(env, './video', force=True)
+    #env = bench.Monitor(env, logger.get_dir() and
+    #    osp.join(logger.get_dir(), "monitor.json"))
     env.seed(args.seed)
     gym.logger.setLevel(logging.WARN)
     task_name = get_task_name(args)

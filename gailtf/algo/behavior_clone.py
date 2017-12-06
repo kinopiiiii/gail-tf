@@ -4,7 +4,8 @@ from gailtf.baselines import logger
 from tqdm import tqdm
 from gailtf.baselines.common.mpi_adam import MpiAdam
 import tempfile, os
-from common.statistics import stats
+#from common.statistics import stats
+from gailtf.common.statistics import stats
 import ipdb
 
 def evaluate(env, policy_func, load_model_path, stochastic_policy=False, number_trajs=10):

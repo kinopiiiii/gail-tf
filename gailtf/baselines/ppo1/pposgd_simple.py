@@ -131,6 +131,10 @@ def learn(env, policy_func, *,
         sample_stochastic=True,
         load_model_path=None, task_name=None, max_sample_traj=1500
         ):
+    print("max_timrsteps",max_timesteps)
+    print("max_episodes",max_episodes)
+    print("max_iters",max_iters)
+    print("max_seconds",max_seconds)
     # Setup losses and stuff
     # ----------------------------------------
     ob_space = env.observation_space
@@ -183,7 +187,6 @@ def learn(env, policy_func, *,
     tstart = time.time()
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
-
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
 
     if task == 'sample_trajectory':
@@ -201,7 +204,6 @@ def learn(env, policy_func, *,
             break
         elif max_seconds and time.time() - tstart >= max_seconds:
             break
-
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
@@ -261,8 +263,11 @@ def learn(env, policy_func, *,
         timesteps_so_far += sum(lens)
         iters_so_far += 1
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
+        print("... EpisodesSoFar ",episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
+        print("... TimestepsSoFar ",timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
+        print("... TimeElapsed",time.time() - tstart)
         if MPI.COMM_WORLD.Get_rank()==0:
             logger.dump_tabular()
 

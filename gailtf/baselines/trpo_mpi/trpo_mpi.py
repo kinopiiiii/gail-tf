@@ -217,7 +217,7 @@ def learn(env, policy_func, *,
     print("Init param sum", th_init.sum(), flush=True)
 
     # Prepare for rollouts
-    # ----------------------------------------
+    # ------------------------------------f----
     seg_gen = traj_segment_generator(pi, env, timesteps_per_batch, stochastic=True)
     traj_gen =  traj_episode_generator(pi, env, timesteps_per_batch, stochastic=sample_stochastic)
 

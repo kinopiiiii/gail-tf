@@ -51,7 +51,7 @@ def main():
     parser.add_argument('--num_cpu', help='number of cpu to used', type=int, default=1)
     parser.add_argument('--entcoeff', help='entropy coefficiency', type=float, default=0)
     parser.add_argument('--save_per_iter', help='save model every xx iterations', type=int, default=100)
-    parser.add_argument('--num_timesteps', help='number of timesteps per episode', type=int, default=1e6)
+    parser.add_argument('--num_timesteps', help='number of timesteps per episode', type=int, default=3e6)
     parser.add_argument('--checkpoint_dir', help='the directory to save model', default='checkpoint')
     parser.add_argument('--load_model_path', help='if provided, load the model', type=str, default=None)
     args = parser.parse_args()

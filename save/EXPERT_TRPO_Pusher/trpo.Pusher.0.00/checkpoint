@@ -1,0 +1,2 @@
+model_checkpoint_path: "trpo.Pusher.0.00-2900"
+all_model_checkpoint_paths: "trpo.Pusher.0.00-2900"

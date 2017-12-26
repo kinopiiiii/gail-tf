@@ -6,6 +6,9 @@ import gym, logging
 from gailtf.baselines import logger
 import ipdb
 from gym import wrappers
+import sys
+sys.path.append('/home/near/gym-extensions-multitask')
+from gym_extensions.continuous import mujoco
 
 def train(args):
     from gailtf.baselines.ppo1 import mlp_policy, pposgd_simple

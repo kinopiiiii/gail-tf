@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import argparse
 from gailtf.baselines.common import set_global_seeds, tf_util as U
 import gym, logging, sys
@@ -68,7 +69,7 @@ def main(args):
     def policy_fn(name, ob_space, ac_space, reuse=False):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             reuse=reuse, hid_size=64, num_hid_layers=2)
-    env = wrappers.Monitor(env, './video', force=True)
+    env = wrappers.Monitor(env, './video', force=True)#動画準備
     #env = bench.Monitor(env, logger.get_dir() and
     #    osp.join(logger.get_dir(), "monitor.json"))
     env.seed(args.seed)
@@ -85,7 +86,7 @@ def main(args):
             behavior_clone.evaluate(env, policy_fn, args.load_model_path, stochastic_policy=args.stochastic_policy)
             sys.exit()
         pretrained_weight = behavior_clone.learn(env, policy_fn, dataset,
-            max_iters=args.BC_max_iter, pretrained=args.pretrained, 
+            max_iters=args.BC_max_iter, pretrained=args.pretrained,
             ckpt_dir=args.checkpoint_dir, log_dir=args.log_dir, task_name=task_name)
         if args.algo == 'bc':
             sys.exit()
@@ -107,10 +108,10 @@ def main(args):
             trpo_mpi.learn(env, policy_fn, discriminator, dataset,
                 pretrained=args.pretrained, pretrained_weight=pretrained_weight,
                 g_step=args.g_step, d_step=args.d_step,
-                timesteps_per_batch=1024, 
+                timesteps_per_batch=1024,
                 max_kl=args.max_kl, cg_iters=10, cg_damping=0.1,
-                max_timesteps=args.num_timesteps, 
-                entcoeff=args.policy_entcoeff, gamma=0.995, lam=0.97, 
+                max_timesteps=args.num_timesteps,
+                entcoeff=args.policy_entcoeff, gamma=0.995, lam=0.97,
                 vf_iters=5, vf_stepsize=1e-3,
                 ckpt_dir=args.checkpoint_dir, log_dir=args.log_dir,
                 save_per_iter=args.save_per_iter, load_model_path=args.load_model_path,

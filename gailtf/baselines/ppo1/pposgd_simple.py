@@ -157,9 +157,9 @@ def learn(env, policy_func, *,
     pol_entpen = (-entcoeff) * meanent
 
     ratio = tf.exp(pi.pd.logp(ac) - oldpi.pd.logp(ac)) # pnew / pold
-    surr1 = ratio * atarg # surrogate from conservative policy iteration
-    surr2 = U.clip(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg #
-    pol_surr = - U.mean(tf.minimum(surr1, surr2)) # PPO's pessimistic surrogate (L^CLIP)
+    surr1 = ratio * atarg # surrogate from conservative policy iteration : r_t(\theta)*A_t
+    surr2 = U.clip(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg #更新則のCLIP項
+    pol_surr = - U.mean(tf.minimum(surr1, surr2)) # PPO's pessimistic surrogate (L^CLIP) 目的関数
     vf_loss = U.mean(tf.square(pi.vpred - ret))
     total_loss = pol_surr + pol_entpen + vf_loss
     losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
@@ -236,8 +236,10 @@ def learn(env, policy_func, *,
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
+                #更新部
                 *newlosses, g = lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
-                adam.update(g, optim_stepsize * cur_lrmult) 
+                adam.update(g, optim_stepsize * cur_lrmult)
+                #ADAMでgをアップデート
                 losses.append(newlosses)
             logger.log(fmt_row(13, np.mean(losses, axis=0)))
 

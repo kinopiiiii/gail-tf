@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from gailtf.baselines.common import explained_variance, zipsame, dataset, Dataset, fmt_row
 from gailtf.baselines import logger
 import gailtf.baselines.common.tf_util as U
@@ -14,21 +15,25 @@ import ipdb
 
 def traj_segment_generator(pi, env, discriminator, horizon, stochastic):
     # Initialize state variables
-    t = 0
-    ac = env.action_space.sample()
-    new = True
-    rew = 0.0
-    true_rew = 0.0
-    ob = env.reset()
+    # 方策とDを入力して，その方策のDにおける報酬を獲得する
+    # たぶんアルゴリズムはここじゃない
 
-    cur_ep_ret = 0
-    cur_ep_len = 0
-    cur_ep_true_ret = 0
-    ep_true_rets = []
-    ep_rets = []
-    ep_lens = []
+    t = 0 #時間
+    ac = env.action_space.sample() #行動（多分最初はランダム）
+    new = True #新規軌道かどうか
+    rew = 0.0 #Dの報酬
+    true_rew = 0.0 #環境の報酬
+    ob = env.reset() #環境の初期化（ob取得）
+
+    cur_ep_ret = 0 #現在のエピソードDの報酬
+    cur_ep_len = 0 #現在のエピソード長さ
+    cur_ep_true_ret = 0 #現在のエピソード真の報酬
+    ep_true_rets = [] #真の報酬配列
+    ep_rets = [] #Dの報酬配列
+    ep_lens = [] #エピソードの長さ配列?
 
     # Initialize history arrays
+    #初期化
     obs = np.array([ob for _ in range(horizon)])
     true_rews = np.zeros(horizon, 'float32')
     rews = np.zeros(horizon, 'float32')
@@ -38,11 +43,12 @@ def traj_segment_generator(pi, env, discriminator, horizon, stochastic):
     prevacs = acs.copy()
 
     while True:
-        prevac = ac
+        prevac = ac #prevac:前回の行動
         ac, vpred = pi.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
+        #セグメント[0、T-1]を返す前に時刻Tで価値関数が必要なので、ここでは少し奇妙です
         if t > 0 and t % horizon == 0:
             yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
                     "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
@@ -50,6 +56,7 @@ def traj_segment_generator(pi, env, discriminator, horizon, stochastic):
             _, vpred = pi.act(stochastic, ob)            
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
+            #注意してください！！！ これらのバッチのいくつかを集約するために下流のアルゴリズムを変更する場合は、必ずディープコピーを実行してください
             ep_rets = []
             ep_true_rets = []
             ep_lens = []
@@ -60,8 +67,8 @@ def traj_segment_generator(pi, env, discriminator, horizon, stochastic):
         acs[i] = ac
         prevacs[i] = prevac
 
-        rew = discriminator.get_reward(ob, ac)
-        ob, true_rew, new, _ = env.step(ac)
+        rew = discriminator.get_reward(ob, ac) #状態と行動を入力してD（報酬）を取得
+        ob, true_rew, new, _ = env.step(ac) #状態，報酬，終了判定，dict
 
         #env.render()
 
@@ -141,11 +148,11 @@ def learn(env, policy_func, discriminator, expert_dataset,
 
     dist = meankl
 
-    all_var_list = pi.get_trainable_variables()
+    all_var_list = pi.get_trainable_variables() #piの訓練可能変数
     var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("pol")]
     vf_var_list = [v for v in all_var_list if v.name.split("/")[1].startswith("vf")]
-    d_adam = MpiAdam(discriminator.get_trainable_variables())
-    vfadam = MpiAdam(vf_var_list)
+    d_adam = MpiAdam(discriminator.get_trainable_variables()) #Dの訓練可能変数のADAM
+    vfadam = MpiAdam(vf_var_list) #piの訓練可能変数のADAM
 
     get_flat = U.GetFlat(var_list)
     set_from_flat = U.SetFromFlat(var_list)
@@ -165,11 +172,13 @@ def learn(env, policy_func, discriminator, expert_dataset,
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
     compute_losses = U.function([ob, ac, atarg], losses)
     compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
+    # 状態，行動，確率的方策（bool）を入力，loss(エキスパート行動と方策行動の差の2乗の平均)andその勾配を出力する関数
     compute_fvp = U.function([flat_tangent, ob, ac, atarg], fvp)
     compute_vflossandgrad = U.function([ob, ret], U.flatgrad(vferr, vf_var_list))
 
     @contextmanager
     def timed(msg):
+        #実行時間を測定する
         if rank == 0:
             print(colorize(msg, color='magenta'))
             tstart = time.time()
@@ -226,6 +235,9 @@ def learn(env, policy_func, discriminator, expert_dataset,
             break
         elif max_iters and iters_so_far >= max_iters:
             break
+        #print(max_timesteps)
+        #print(max_episodes)
+        #print(max_iters)
 
         # Save model
         if iters_so_far % save_per_iter == 0 and ckpt_dir is not None:
@@ -235,27 +247,33 @@ def learn(env, policy_func, discriminator, expert_dataset,
 
         def fisher_vector_product(p):
             return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
-        # ------------------ Update G ------------------
+        print(" ------------------ Update G ------------------")
         logger.log("Optimizing Policy...")
-        for _ in range(g_step):
-            with timed("sampling"):
+        for _ in range(g_step): # default:3
+            with timed("sampling"): # seg_generatorからのサンプリング(timedでサンプリング時間を測定)
                 seg = seg_gen.__next__()
+            print("sampled")
+            #print(seg)
             add_vtarg_and_adv(seg, gamma, lam)
             # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
             ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
-            vpredbefore = seg["vpred"] # predicted value function before udpate
-            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+            vpredbefore = seg["vpred"] # predicted value function before udpate 更新前の予想価値関数
+            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate アドバンテージ関数
 
-            if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob) # update running mean/std for policy
+            if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob)
+            # update running mean/std for policy
+            #"ob_rms"がpiの属性の一部ならTrue
 
             args = seg["ob"], seg["ac"], atarg
             fvpargs = [arr[::5] for arr in args]
 
             assign_old_eq_new() # set old parameter values to new parameter values
+            #勾配取得
             with timed("computegrad"):
                 *lossbefore, g = compute_lossandgrad(*args)
-            lossbefore = allmean(np.array(lossbefore))
-            g = allmean(g)
+            lossbefore = allmean(np.array(lossbefore)) #損失平均?
+            g = allmean(g) #勾配平均?
+
             if np.allclose(g, 0):
                 logger.log("Got zero gradient. not updating")
             else:
@@ -298,13 +316,13 @@ def learn(env, policy_func, discriminator, expert_dataset,
                     include_final_partial_batch=False, batch_size=128):
                         if hasattr(pi, "ob_rms"): pi.ob_rms.update(mbob) # update running mean/std for policy
                         g = allmean(compute_vflossandgrad(mbob, mbret))
-                        vfadam.update(g, vf_stepsize)
+                        vfadam.update(g, vf_stepsize) #勾配更新
 
         g_losses = meanlosses
         for (lossname, lossval) in zip(loss_names, meanlosses):
             logger.record_tabular(lossname, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
-        # ------------------ Update D ------------------
+        print(" ------------------ Update D ------------------")
         logger.log("Optimizing Discriminator...")
         logger.log(fmt_row(13, discriminator.loss_name))
         ob_expert, ac_expert = expert_dataset.get_next_batch(len(ob))
@@ -367,6 +385,8 @@ def traj_episode_generator(pi, env, horizon, stochastic):
         news.append(new)
         acs.append(ac)
 
+        env.render()
+
         ob, rew, new, _ = env.step(ac)
         rews.append(rew)
 
@@ -389,7 +409,8 @@ def traj_episode_generator(pi, env, horizon, stochastic):
 
 def evaluate(env, policy_func, load_model_path, timesteps_per_batch, number_trajs=10, 
          stochastic_policy=False):
-    
+    #traj_episode_generatorして，報酬の計算
+
     from tqdm import tqdm
     # Setup network
     # ----------------------------------------

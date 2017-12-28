@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from gailtf.baselines.common import explained_variance, zipsame, dataset
 from gailtf.baselines import logger
 import gailtf.baselines.common.tf_util as U
@@ -279,7 +280,7 @@ def learn(env, policy_func, *,
             return allmean(compute_fvp(p, *fvpargs)) + cg_damping * p
 
         assign_old_eq_new()  # set old parameter values to new parameter values
-        with timed("computegrad"):
+        with timed("computegrad"): #勾配計算
             *lossbefore, g = compute_lossandgrad(*args)
         lossbefore = allmean(np.array(lossbefore))
         g = allmean(g)

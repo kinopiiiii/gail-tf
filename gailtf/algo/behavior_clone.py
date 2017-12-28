@@ -43,10 +43,11 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   ob = U.get_placeholder_cached(name="ob")
   ac = pi.pdtype.sample_placeholder([None])
   stochastic = U.get_placeholder_cached(name="stochastic")
-  loss = tf.reduce_mean(tf.square(ac-pi.ac))
+  loss = tf.reduce_mean(tf.square(ac-pi.ac)) #エキスパート行動と方策行動の差の2乗の平均
   var_list = pi.get_trainable_variables()
   adam = MpiAdam(var_list, epsilon=adam_epsilon)
   lossandgrad = U.function([ob, ac, stochastic], [loss]+[U.flatgrad(loss, var_list)])
+  #状態，行動，確率的方策（bool）を入力，loss(エキスパート行動と方策行動の差の2乗の平均)andその勾配を出力
 
   if not pretrained:
     writer = U.FileWriter(log_dir)

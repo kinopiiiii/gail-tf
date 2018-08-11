@@ -36,6 +36,7 @@ def traj_episode_generator(pi, env, horizon, stochastic):
         news.append(new)
         acs.append(ac)
         ob, rew, new, _ = env.step(ac)
+        print(rew)
         rews.append(rew)
 
         cur_ep_ret += rew
@@ -145,8 +146,9 @@ def learn(env, policy_func, *,
           sample_stochastic=True, task="train",
           ckpt_dir=None, save_per_iter=100,
           load_model_path=None, task_name=None,
-          max_sample_traj=1500
+          max_sample_traj=500
           ):
+    print(A)
     nworkers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
     np.set_printoptions(precision=3)
